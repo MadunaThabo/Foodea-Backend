@@ -16,12 +16,16 @@ namespace Foodea.Data
 
         }
         public virtual DbSet<User> User { get; set; }
+        public virtual DbSet<Recipe> Recipe { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<User>(entity => {
                 entity.HasKey(e => e.UserId);
             });
 
+            modelBuilder.Entity<Recipe>(entity => {
+                entity.HasKey(e => e.id);
+            });
 
             OnModelCreatingPartial(modelBuilder);
         }

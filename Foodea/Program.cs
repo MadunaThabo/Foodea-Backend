@@ -13,6 +13,7 @@ builder.Services.AddCors(option => {
 });
 
 builder.Services.AddScoped<IUserServices, UserService>();
+builder.Services.AddScoped<ISpoonacularServices, SpoonacularService>();
 
 
 builder.Services.AddControllers();
@@ -29,6 +30,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("allowedOrigin");
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
