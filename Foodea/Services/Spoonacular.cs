@@ -1,6 +1,11 @@
 ﻿using System.Net.Http.Headers;
 using Foodea.Models;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using System.IO.Pipelines;
+using System.Collections.Concurrent;
+using System.Configuration;
 
 namespace Foodea.Services {
 
@@ -8,17 +13,22 @@ namespace Foodea.Services {
         public Task<string> GetRandomRecipes(int number);
         public Task<string> GetRecipeById(int number);
         public Task<string> GetSimilarRecipesToRecipe(int recipeId, int numberOfSimilarRecipes);
-
         public Task<string> searchRecipe(string query);
+        public Task<string> getRecipesByIngredients(string query);
     }
     public class SpoonacularService : ISpoonacularServices {
 
         private readonly HttpClient httpClient = new HttpClient();
         private string apiKey;
         public SpoonacularService(IConfiguration config) {
-            //var random = config.GetValue<string>("APIKeys:spoonacularApiKey");
-            this.apiKey = config.GetValue<string>("APIKeys:spoonacularApiKey");
-            this.httpClient.DefaultRequestHeaders.Add("apiKey", config.GetValue<string>("APIKeys:spoonacularApiKey"));
+            //this.apiKey = config.GetValue<string>("APIKeys:spoonacularApiKey");
+            //this.httpClient.DefaultRequestHeaders.Add("apiKey", config.GetValue<string>("APIKeys:spoonacularApiKey"));
+            
+            string[] keys = config.GetSection("APIKeys:Keys").Get<string[]>();
+            int random = new Random().Next(0, keys.Length-1);
+            this.apiKey = keys[random];
+            this.httpClient.DefaultRequestHeaders.Add("apiKey", this.apiKey);
+
         }
 
         public async Task<string> GetRandomRecipes(int number) {
@@ -30,7 +40,7 @@ namespace Foodea.Services {
                 return content;
             }
             else {
-                throw new KeyNotFoundException("will change to correct error");
+                throw new KeyNotFoundException("An error occurred.");
             }
         }
 
@@ -42,7 +52,7 @@ namespace Foodea.Services {
                 return content;
             }
             else {
-                return "An error occurred.";
+                throw new KeyNotFoundException("An error occurred.");
             }
         }
 
@@ -54,20 +64,63 @@ namespace Foodea.Services {
                 return content;
             }
             else {
-                return "An error occurred.";
+                throw new KeyNotFoundException("An error occurred.");
             }
         }
 
-        public async Task<string> searchRecipe(string query) {
-            var url = "https://api.spoonacular.com/recipes/complexSearch?query=" + query + "&number=4"+ "&apiKey=" + apiKey;
+        public async Task<string> searchRecipe(string query)
+        {
+            var url = "https://api.spoonacular.com/recipes/complexSearch?" + query + "&apiKey=" + apiKey;
+            //var url = "https://api.spoonacular.com/recipes/findByIngredients?ingredients=apples,+flour,+sugar&number=2" + "&type=breakfast" + "&apiKey=" + apiKey;
             var response = await this.httpClient.GetAsync(url);
             var content = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == System.Net.HttpStatusCode.OK) {
-                return content;
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var recipes = new List<JObject>();
+                var result1 = JObject.Parse(content);
+                var results = result1["results"].ToArray();
+                foreach (var result in results)
+                {
+                    var recipeId = (int)result["id"];
+                    var recipeContent = await GetRecipeById(recipeId);
+                    var recipe = JObject.Parse(recipeContent);
+                    recipes.Add(recipe);
+                }
+                var responseJson = new JObject();
+                responseJson["recipes"] = JArray.FromObject(recipes);
+                return responseJson.ToString();
             }
-            else {
-                return "An error occurred.";
+            else
+            {
+                throw new KeyNotFoundException("An error occurred.");
             }
         }
+
+
+
+        public async Task<string> getRecipesByIngredients(string query)
+        {
+            var url = "https://api.spoonacular.com/recipes/findByIngredients?ingredients=" + query + "&number=3&limitLicense=true&ranking=1&ignorePantry=true&includeNutrition=true&apiKey=" + apiKey + "&sort=missedIngredients";
+            var response = await this.httpClient.GetAsync(url);
+            var content = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var recipes = new ConcurrentBag<JObject>();
+                var results = JArray.Parse(content);
+                await Task.WhenAll(results.Select(async (result) => {
+                    var recipeId = (int)result["id"];
+                    var recipeContent = await GetRecipeById(recipeId);
+                    var recipe = JObject.Parse(recipeContent);
+                    recipes.Add(recipe);
+                }));
+                var sortedRecipes = recipes.OrderBy(r => r["missedIngredientCount"]).ToList();
+                return JsonConvert.SerializeObject(sortedRecipes);
+            }
+            else
+            {
+                throw new KeyNotFoundException("An error occurred.");
+            }
+        }
+
     }
 }

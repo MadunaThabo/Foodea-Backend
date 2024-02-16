@@ -2,6 +2,7 @@
 using Foodea.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Foodea.Controllers {
     [Route("api/[controller]")]
@@ -53,6 +54,48 @@ namespace Foodea.Controllers {
         public async Task<IActionResult> searchRecipe(string query) {
             try {
                 var content = await this.spoonacularServices.searchRecipe(query);
+                return Ok(content);
+            }
+            catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("search/")]
+        public async Task<IActionResult> searchRecipe([FromBody] RecipeSearchModel recipeSearch ) {
+            try {
+                string fullQuery = "";
+                bool first = true;
+                if (recipeSearch.query != null) {
+                    fullQuery += "query=" + recipeSearch.query + "&";
+                }
+                if (recipeSearch.ingredients != null) {
+                    fullQuery += "includeIngredients=" + string.Join(",", recipeSearch.ingredients) + "&";
+                }
+                if (recipeSearch.cuisine != null) {
+                    fullQuery += "cuisine=" + recipeSearch.cuisine + "&";
+                }
+                if (recipeSearch.diet != null) {
+                    fullQuery += "diet=" + recipeSearch.diet + "&";
+                }
+                if (recipeSearch.type != null) {
+                    fullQuery += "type=" + recipeSearch.type + "&";
+                }
+                if (recipeSearch.mealPreparationTime != null) {
+                    fullQuery += "maxReadyTime=" + recipeSearch.mealPreparationTime.ToString();
+                }   
+                var content = await this.spoonacularServices.searchRecipe(fullQuery);
+                return Ok(content);
+            }
+            catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("ingredients/{ingredients}")]
+        public async Task<IActionResult> getRecipesByIngredients(string ingredients) {
+            try {
+                var content = await this.spoonacularServices.getRecipesByIngredients(ingredients);
                 return Ok(content);
             }
             catch (Exception ex) {
