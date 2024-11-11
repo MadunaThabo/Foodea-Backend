@@ -21,12 +21,13 @@ namespace Foodea.Services {
         private readonly HttpClient httpClient = new HttpClient();
         private string apiKey;
         public SpoonacularService(IConfiguration config) {
+            //TODO: for multiple keys
             //this.apiKey = config.GetValue<string>("APIKeys:spoonacularApiKey");
             //this.httpClient.DefaultRequestHeaders.Add("apiKey", config.GetValue<string>("APIKeys:spoonacularApiKey"));
             
-            string[] keys = config.GetSection("APIKeys:Keys").Get<string[]>();
+            //string[] keys = config.GetSection("APIKeys:Keys").Get<string[]>();
             string key = config.GetSection("spoonacularApiKey").Get<string>();
-            int random = new Random().Next(0, keys.Length-1);
+            //int random = new Random().Next(0, keys.Length-1);
             //this.apiKey = keys[random];
 
             this.apiKey = key;
