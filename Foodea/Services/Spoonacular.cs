@@ -25,8 +25,11 @@ namespace Foodea.Services {
             //this.httpClient.DefaultRequestHeaders.Add("apiKey", config.GetValue<string>("APIKeys:spoonacularApiKey"));
             
             string[] keys = config.GetSection("APIKeys:Keys").Get<string[]>();
+            string key = config.GetSection("spoonacularApiKey").Get<string>();
             int random = new Random().Next(0, keys.Length-1);
-            this.apiKey = keys[random];
+            //this.apiKey = keys[random];
+
+            this.apiKey = key;
             this.httpClient.DefaultRequestHeaders.Add("apiKey", this.apiKey);
 
         }

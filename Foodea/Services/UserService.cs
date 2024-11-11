@@ -34,7 +34,7 @@ namespace Foodea.Services{
             
         }
         public List<User> getAllUsers() {
-           return this.foodeaDbContext.User.ToList();
+            return this.foodeaDbContext.User.ToList();
         }
 
         public User getUserById(Guid id) {
